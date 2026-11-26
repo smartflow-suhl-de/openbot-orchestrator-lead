@@ -49,7 +49,7 @@ and the zip are built from them and are not maintained by hand.
 
 ## Download link
 
-- **Landing page:** <https://smartflow-suhl-de.github.io/openbot-orchestrator-lead/>
+- **Landing page:** `docs/index.html` (ready for GitHub Pages or any static host; GitHub Pages is not available for this private repo on the current plan)
 - **Latest release:** <https://github.com/smartflow-suhl-de/openbot-orchestrator-lead/releases/latest>
 - **Direct zip:** <https://github.com/smartflow-suhl-de/openbot-orchestrator-lead/releases/latest/download/openbot-orchestrator-lead.zip>
 
