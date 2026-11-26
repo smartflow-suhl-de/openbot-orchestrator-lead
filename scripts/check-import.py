@@ -84,10 +84,20 @@ def check_frontmatter(text: str, where: str) -> None:
     if end == -1:
         error(f"{where}: Frontmatter nicht geschlossen")
         return
-    block = text[4:end]
-    for field in ("name:", "description:"):
-        if field not in block:
-            error(f"{where}: Frontmatter ohne {field.rstrip(':')}")
+    values: dict[str, str] = {}
+    for line in text[4:end].splitlines():
+        if not line.strip() or line.startswith((" ", "\t")):
+            continue
+        field, sep, value = line.partition(":")
+        if sep:
+            values[field.strip()] = value.strip().strip('"').strip("'")
+    for field in ("name", "description"):
+        if not values.get(field):
+            error(f"{where}: Frontmatter ohne {field}")
+    if len(values.get("name", "")) > 80:
+        error(f"{where}: name über 80 Zeichen")
+    if len(values.get("description", "")) > 500:
+        error(f"{where}: description über 500 Zeichen")
 
 
 def main() -> None:
