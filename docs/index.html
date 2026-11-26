@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Orchestrator Lead — OpenBot agent</title>
+<meta name="description" content="Importable OpenBot agent package: orchestrate software delivery across specialized subagents. Download the zip and import it in OpenBot.">
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #f7f6f3;
+    --panel: #ffffff;
+    --ink: #141414;
+    --muted: #5c5c5c;
+    --line: #e2e0da;
+    --accent: #3b5bdb;
+    --accent-ink: #ffffff;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #121212;
+      --panel: #1b1b1b;
+      --ink: #f2f2f2;
+      --muted: #a6a6a6;
+      --line: #2e2e2e;
+      --accent: #8fa8ff;
+      --accent-ink: #0b1220;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font: 16px/1.6 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  main { max-width: 720px; margin: 0 auto; padding: 56px 24px 72px; }
+  .eyebrow {
+    display: inline-block;
+    font-size: 13px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 12px;
+  }
+  h1 { font-size: clamp(34px, 6vw, 48px); line-height: 1.1; margin: 0 0 12px; letter-spacing: -0.02em; }
+  .by { color: var(--muted); margin: 0 0 28px; }
+  .lede { font-size: 18px; margin: 0 0 32px; max-width: 58ch; }
+  .cta { display: flex; flex-wrap: wrap; gap: 12px; margin: 0 0 16px; }
+  .button {
+    display: inline-flex; align-items: center; gap: 10px;
+    padding: 13px 20px; border-radius: 10px;
+    background: var(--accent); color: var(--accent-ink);
+    text-decoration: none; font-weight: 600;
+    border: 1px solid transparent;
+  }
+  .button:hover { filter: brightness(1.06); }
+  .button.secondary {
+    background: transparent; color: var(--ink); border-color: var(--line);
+  }
+  .meta { color: var(--muted); font-size: 14px; margin: 0 0 40px; }
+  h2 { font-size: 20px; margin: 40px 0 12px; letter-spacing: -0.01em; }
+  ol, ul { padding-left: 22px; margin: 0 0 8px; }
+  li { margin: 0 0 8px; }
+  .card {
+    background: var(--panel); border: 1px solid var(--line);
+    border-radius: 12px; padding: 20px 22px; margin: 0 0 16px;
+  }
+  code, pre {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 14px;
+  }
+  pre {
+    background: var(--panel); border: 1px solid var(--line);
+    border-radius: 10px; padding: 14px 16px; overflow-x: auto;
+  }
+  .pipe { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
+  .pipe li { display: grid; grid-template-columns: 120px 1fr; gap: 12px; align-items: baseline; }
+  .pipe strong { font-weight: 600; }
+  .note { color: var(--muted); font-size: 14px; }
+  footer { margin-top: 56px; padding-top: 20px; border-top: 1px solid var(--line); color: var(--muted); font-size: 13px; }
+  a { color: var(--accent); }
+</style>
+</head>
+<body>
+<main>
+  <span class="eyebrow">OpenBot agent</span>
+  <h1>Orchestrator Lead</h1>
+  <p class="by">by Fellipe · 7 skills · 2 paused routines</p>
+
+  <p class="lede">A multi-model engineering lead. It orchestrates software delivery across specialized subagents — SPEC, Worker, QA, Code Review, Security Review, Incident RCA — instead of running one large coding chat. Merges, deploys and store releases stay with the owner.</p>
+
+  <div class="cta">
+    <a class="button" href="https://github.com/smartflow-suhl-de/openbot-orchestrator-lead/releases/latest/download/openbot-orchestrator-lead.zip">Download the zip</a>
+    <a class="button secondary" href="https://github.com/smartflow-suhl-de/openbot-orchestrator-lead">View source</a>
+  </div>
+  <p class="meta">Zip, ~17 KB · Manifest at the root · nothing is uploaded when you install</p>
+
+  <h2>Install</h2>
+  <div class="card">
+    <ol>
+      <li>Download the zip to the computer that runs OpenBot.</li>
+      <li>In OpenBot open <strong>Server settings → Import</strong>.</li>
+      <li>Choose <strong>Select file…</strong>, pick the zip, then import the agent <strong>Orchestrator Lead</strong>.</li>
+      <li>Set provider and model, then run the first conversation: the agent configures harness, per-role model matrix, repos and routines with you.</li>
+    </ol>
+  </div>
+  <p class="note">A second import of the same file does not overwrite the first copy; it creates another. Both routines arrive paused.</p>
+
+  <h2>Pipeline</h2>
+  <div class="card">
+    <ul class="pipe">
+      <li><strong>Spec</strong><span>read-only research, architecture, a plan with verification assertions</span></li>
+      <li><strong>Worker</strong><span>isolated worktree, Simplify Pass, unpiped tests, JSON handoff</span></li>
+      <li><strong>QA</strong><span>diff-driven functional testing with before/after evidence</span></li>
+      <li><strong>Review</strong><span>code review and security review in parallel, P0–P3</span></li>
+      <li><strong>Incident</strong><span>read-only root cause from CI, Sentry or prod alerts</span></li>
+    </ul>
+  </div>
+
+  <h2>Rebuild</h2>
+  <pre>./scripts/build-import.sh
+./scripts/check-import.py</pre>
+  <p class="note">Source of truth are <code>AGENT.md</code>, <code>skills/</code> and <code>routines/</code>. Manifest and zip are generated, not edited by hand.</p>
+
+  <footer>
+    <p>Working copy of a public OpenBot share. Rights to the text belong to the author. OpenBot itself is under PolyForm Noncommercial 1.0.0. The import runs locally; no conversations, memories, model settings or workspace files are part of the package.</p>
+  </footer>
+</main>
+</body>
+</html>
