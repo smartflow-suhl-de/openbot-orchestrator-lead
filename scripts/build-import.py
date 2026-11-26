@@ -1,16 +1,15 @@
 #!/usr/bin/env python3
-"""Baut das OpenBot-Import-Zip aus AGENT.md, skills/ und routines/.
+"""Build the OpenBot import zip from AGENT.md, skills/ and routines/.
 
-Quelle der Wahrheit sind die Dateien im Repo:
+Source of truth are the files in the repo:
 
-- AGENT.md         -> `description` des Agenten (Text ab "You are ...")
-- skills/<name>/   -> ein Skill-Ordner pro Agent (SKILL.md mit Frontmatter)
-- routines/*.txt   -> je eine Routine, Prompt ist der Dateiinhalt
+- AGENT.md         -> the agent's `description` (text starting at "You are ...")
+- skills/<name>/   -> one skill folder per agent (SKILL.md with frontmatter)
+- routines/*.txt   -> one routine each; the prompt is the file content
 
-Das Skript schreibt `import/openbot-import.json` (nachvollziehbar im Repo),
-baut `build/openbot-import/` und packt daraus
-`dist/openbot-orchestrator-lead.zip`. Das Zip liegt mit dem Manifest im
-Wurzelverzeichnis, so wie OpenBot es erwartet.
+The script writes `import/openbot-import.json` (tracked in the repo), builds
+`build/openbot-import/` and packs `dist/openbot-orchestrator-lead.zip` from it.
+The zip has the manifest at its root, as OpenBot expects.
 """
 
 from __future__ import annotations
@@ -31,13 +30,13 @@ SOURCE_APP = "openbot-share"
 EXPORTED_AT = "2026-11-26T00:00:00Z"
 TIMEZONE = "Europe/Berlin"
 
-# (Routine-Name, Datei in routines/, Uhrzeit Mo-Fr)
+# (routine name, file in routines/, weekday time)
 ROUTINES = [
     ("Issues & PRs Daily Chase", "issues-prs-daily-chase.txt", "09:00"),
     ("CI, Dependencies & Errors Watch", "ci-dependencies-errors-watch.txt", "14:00"),
 ]
 
-# Grenzen aus OpenBot (packages/contracts/src/ipc-agent-import.ts).
+# Limits from OpenBot (packages/contracts/src/ipc-agent-import.ts).
 LIMITS = {
     "key": 64,
     "agentName": 80,
@@ -56,7 +55,7 @@ MANIFEST = ROOT / "import" / "openbot-import.json"
 
 
 def fail(message: str) -> None:
-    print(f"FEHLER: {message}", file=sys.stderr)
+    print(f"ERROR: {message}", file=sys.stderr)
     raise SystemExit(1)
 
 
@@ -68,12 +67,12 @@ def description() -> str:
         None,
     )
     if start is None:
-        fail("AGENT.md hat keinen Text ab 'You are ...'")
+        fail("AGENT.md has no text starting at 'You are ...'")
     body = "\n".join(lines[start:]).strip()
     if len(body) > LIMITS["agentDescription"]:
         fail(
-            f"description ist {len(body)} Zeichen lang, "
-            f"erlaubt sind {LIMITS['agentDescription']}"
+            f"description is {len(body)} characters, "
+            f"{LIMITS['agentDescription']} allowed"
         )
     return body
 
@@ -81,10 +80,10 @@ def description() -> str:
 def read_frontmatter(path: Path) -> dict[str, str]:
     text = path.read_text(encoding="utf-8")
     if not text.startswith("---\n"):
-        fail(f"{path.relative_to(ROOT)} beginnt nicht mit YAML-Frontmatter")
+        fail(f"{path.relative_to(ROOT)} does not start with YAML frontmatter")
     end = text.find("\n---", 4)
     if end == -1:
-        fail(f"{path.relative_to(ROOT)} hat kein schließendes '---'")
+        fail(f"{path.relative_to(ROOT)} has no closing '---'")
     values: dict[str, str] = {}
     for line in text[4:end].splitlines():
         if not line.strip() or line.startswith((" ", "\t")):
@@ -102,24 +101,24 @@ def skills() -> list[tuple[str, Path]]:
             continue
         entry = folder / "SKILL.md"
         if not entry.is_file():
-            fail(f"skills/{folder.name} hat keine SKILL.md")
+            fail(f"skills/{folder.name} has no SKILL.md")
         frontmatter = read_frontmatter(entry)
         missing = {"name", "description"} - set(frontmatter)
         if missing:
-            fail(f"skills/{folder.name}/SKILL.md: Frontmatter fehlt {sorted(missing)}")
+            fail(f"skills/{folder.name}/SKILL.md: frontmatter is missing {sorted(missing)}")
         if frontmatter["name"] != folder.name:
             fail(
-                f"skills/{folder.name}: Frontmatter-Name "
-                f"'{frontmatter['name']}' passt nicht zum Ordner"
+                f"skills/{folder.name}: frontmatter name "
+                f"'{frontmatter['name']}' does not match the folder"
             )
         files = [p for p in folder.rglob("*") if p.is_file()]
         if len(files) > LIMITS["skillFiles"]:
-            fail(f"skills/{folder.name} hat {len(files)} Dateien, erlaubt sind {LIMITS['skillFiles']}")
+            fail(f"skills/{folder.name} has {len(files)} files, {LIMITS['skillFiles']} allowed")
         found.append((folder.name, folder))
     if not found:
-        fail("keine Skills unter skills/ gefunden")
+        fail("no skills found under skills/")
     if len(found) > LIMITS["agentSkills"]:
-        fail(f"{len(found)} Skills, erlaubt sind {LIMITS['agentSkills']}")
+        fail(f"{len(found)} skills, {LIMITS['agentSkills']} allowed")
     return found
 
 
@@ -128,10 +127,10 @@ def routines() -> list[dict]:
     for name, filename, time in ROUTINES:
         path = ROOT / "routines" / filename
         if not path.is_file():
-            fail(f"routines/{filename} fehlt")
+            fail(f"routines/{filename} is missing")
         instruction = path.read_text(encoding="utf-8").strip()
         if len(instruction) > LIMITS["routineInstruction"]:
-            fail(f"routines/{filename} ist zu lang")
+            fail(f"routines/{filename} is too long")
         entries.append(
             {
                 "name": name,
@@ -142,20 +141,20 @@ def routines() -> list[dict]:
             }
         )
     if len(entries) > LIMITS["agentRoutines"]:
-        fail(f"{len(entries)} Routinen, erlaubt sind {LIMITS['agentRoutines']}")
+        fail(f"{len(entries)} routines, {LIMITS['agentRoutines']} allowed")
     for entry in entries:
         if len(entry["name"]) > LIMITS["routineName"]:
-            fail(f"Routinenname zu lang: {entry['name']}")
+            fail(f"routine name too long: {entry['name']}")
     return entries
 
 
 def manifest() -> dict:
     if not re.fullmatch(r"[a-z0-9](?:[a-z0-9-]*[a-z0-9])?", AGENT_KEY):
-        fail(f"ungültiger Agent-Key: {AGENT_KEY}")
+        fail(f"invalid agent key: {AGENT_KEY}")
     if len(AGENT_NAME) > LIMITS["agentName"]:
-        fail("Agentenname zu lang")
+        fail("agent name too long")
     if len(AGENT_TITLE) > LIMITS["agentTitle"]:
-        fail("Agententitel zu lang")
+        fail("agent title too long")
 
     paths = [f"agents/{AGENT_KEY}/skills/{name}" for name, _ in skills()]
     return {
@@ -214,19 +213,19 @@ def main() -> None:
     zipdir()
     agent = payload["agents"][0]
     print(f"Manifest: {MANIFEST.relative_to(ROOT)}")
-    print(f"Zip:      {ZIP.relative_to(ROOT)} ({ZIP.stat().st_size} Bytes)")
+    print(f"Zip:      {ZIP.relative_to(ROOT)} ({ZIP.stat().st_size} bytes)")
     print(f"Agent:    {agent['name']} ({agent['key']})")
     print(f"Skills:   {len(agent['skills'])}")
     for path in agent["skills"]:
         print(f"          - {path.rsplit('/', 1)[-1]}")
-    print(f"Routinen: {len(agent['routines'])}, alle pausiert")
+    print(f"Routines: {len(agent['routines'])}, all paused")
     for routine in agent["routines"]:
         print(
             f"          - {routine['name']}: "
             f"{routine['schedule']['kind']} {routine['schedule']['time']} "
             f"{routine['timezone']}"
         )
-    print(f"description: {len(agent['description'])} / {LIMITS['agentDescription']} Zeichen")
+    print(f"description: {len(agent['description'])} / {LIMITS['agentDescription']} characters")
 
 
 if __name__ == "__main__":

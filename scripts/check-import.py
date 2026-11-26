@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Prüft ein OpenBot-Import-Zip gegen die Regeln des Import-Formats.
+"""Check an OpenBot import zip against the rules of the import format.
 
-Aufruf: scripts/check-import.py [pfad/zum.zip]
-Ohne Argument wird dist/openbot-orchestrator-lead.zip geprüft.
+Usage: scripts/check-import.py [path/to.zip]
+Without an argument, dist/openbot-orchestrator-lead.zip is checked.
 """
 
 from __future__ import annotations
@@ -36,53 +36,53 @@ def check(condition: bool, message: str) -> None:
 
 def check_schedule(schedule: object, where: str) -> None:
     if not isinstance(schedule, dict) or schedule.get("kind") not in SCHEDULE_KINDS:
-        error(f"{where}: ungültiger schedule {schedule!r}")
+        error(f"{where}: invalid schedule {schedule!r}")
         return
     kind = schedule["kind"]
     if kind in {"daily", "weekdays", "weekly", "monthly"}:
-        check(isinstance(schedule.get("time"), str) and TIME.match(schedule["time"]) is not None, f"{where}: Uhrzeit fehlt oder ist ungültig")
+        check(isinstance(schedule.get("time"), str) and TIME.match(schedule["time"]) is not None, f"{where}: time missing or invalid")
     if kind == "hourly":
         minute = schedule.get("minute")
-        check(isinstance(minute, int) and 0 <= minute <= 59, f"{where}: minute fehlt")
+        check(isinstance(minute, int) and 0 <= minute <= 59, f"{where}: minute missing")
     if kind == "weekly":
         day = schedule.get("weekday")
-        check(isinstance(day, int) and 0 <= day <= 6, f"{where}: weekday fehlt")
+        check(isinstance(day, int) and 0 <= day <= 6, f"{where}: weekday missing")
     if kind == "monthly":
         day = schedule.get("day")
-        check(isinstance(day, int) and 1 <= day <= 31, f"{where}: day fehlt")
+        check(isinstance(day, int) and 1 <= day <= 31, f"{where}: day missing")
     if kind == "interval":
         amount, unit = schedule.get("amount"), schedule.get("unit")
-        check(isinstance(amount, int) and amount > 0, f"{where}: amount fehlt")
-        check(unit in {"minutes", "hours", "days"}, f"{where}: unit fehlt")
+        check(isinstance(amount, int) and amount > 0, f"{where}: amount missing")
+        check(unit in {"minutes", "hours", "days"}, f"{where}: unit missing")
 
 
 def check_routines(values: object, where: str) -> None:
     if not isinstance(values, list):
-        error(f"{where}: Routinen sind keine Liste")
+        error(f"{where}: routines are not a list")
         return
-    check(len(values) <= 64, f"{where}: mehr als 64 Routinen")
+    check(len(values) <= 64, f"{where}: more than 64 routines")
     for index, routine in enumerate(values):
-        label = f"{where} Routine {index + 1}"
+        label = f"{where} routine {index + 1}"
         if not isinstance(routine, dict):
-            error(f"{label}: ungültig")
+            error(f"{label}: invalid")
             continue
         name = routine.get("name")
-        check(isinstance(name, str) and 0 < len(name) <= 80, f"{label}: name fehlt oder ist zu lang")
+        check(isinstance(name, str) and 0 < len(name) <= 80, f"{label}: name missing or too long")
         instruction = routine.get("instruction")
-        check(isinstance(instruction, str) and instruction.strip() != "", f"{label}: instruction fehlt")
-        check(isinstance(instruction, str) and len(instruction) <= 100_000, f"{label}: instruction zu lang")
-        check(isinstance(routine.get("active"), bool), f"{label}: active fehlt (OpenBot setzt sonst true)")
-        check(isinstance(routine.get("timezone"), str) and routine["timezone"] != "", f"{label}: timezone fehlt")
+        check(isinstance(instruction, str) and instruction.strip() != "", f"{label}: instruction missing")
+        check(isinstance(instruction, str) and len(instruction) <= 100_000, f"{label}: instruction too long")
+        check(isinstance(routine.get("active"), bool), f"{label}: active missing (OpenBot otherwise sets true)")
+        check(isinstance(routine.get("timezone"), str) and routine["timezone"] != "", f"{label}: timezone missing")
         check_schedule(routine.get("schedule"), label)
 
 
 def check_frontmatter(text: str, where: str) -> None:
     if not text.startswith("---\n"):
-        error(f"{where}: kein YAML-Frontmatter")
+        error(f"{where}: no YAML frontmatter")
         return
     end = text.find("\n---", 4)
     if end == -1:
-        error(f"{where}: Frontmatter nicht geschlossen")
+        error(f"{where}: frontmatter not closed")
         return
     values: dict[str, str] = {}
     for line in text[4:end].splitlines():
@@ -93,108 +93,108 @@ def check_frontmatter(text: str, where: str) -> None:
             values[field.strip()] = value.strip().strip('"').strip("'")
     for field in ("name", "description"):
         if not values.get(field):
-            error(f"{where}: Frontmatter ohne {field}")
+            error(f"{where}: frontmatter without {field}")
     if len(values.get("name", "")) > 80:
-        error(f"{where}: name über 80 Zeichen")
+        error(f"{where}: name over 80 characters")
     if len(values.get("description", "")) > 500:
-        error(f"{where}: description über 500 Zeichen")
+        error(f"{where}: description over 500 characters")
 
 
 def main() -> None:
     path = Path(sys.argv[1]) if len(sys.argv) > 1 else DEFAULT
     if not path.is_file():
-        print(f"FEHLER: {path} fehlt. Erst scripts/build-import.sh ausführen.")
+        print(f"ERROR: {path} is missing. Run scripts/build-import.sh first.")
         raise SystemExit(1)
 
     with zipfile.ZipFile(path) as archive:
         names = [info.filename for info in archive.infolist() if not info.is_dir()]
-        check(len(names) <= 200_000, "mehr als 200.000 Dateien")
+        check(len(names) <= 200_000, "more than 200,000 files")
 
         for name in names:
             if name.startswith("/") or ".." in Path(name).parts:
-                error(f"unsicherer Pfad: {name}")
+                error(f"unsafe path: {name}")
             if FORBIDDEN_FILE.search(name):
-                error(f"verbotene Datei im Zip: {name}")
+                error(f"forbidden file in the zip: {name}")
 
         if "openbot-import.json" not in names:
-            print("FEHLER: openbot-import.json liegt nicht im Wurzelverzeichnis.")
+            print("ERROR: openbot-import.json is not at the zip root.")
             raise SystemExit(1)
 
         manifest = json.loads(archive.read("openbot-import.json"))
-        check(manifest.get("format") == "openbot-agent-import", "format ist nicht openbot-agent-import")
-        check(manifest.get("version") == 1, "version ist nicht 1")
+        check(manifest.get("format") == "openbot-agent-import", "format is not openbot-agent-import")
+        check(manifest.get("version") == 1, "version is not 1")
         source = manifest.get("source") or {}
-        check(isinstance(source.get("app"), str) and len(source["app"]) <= 64, "source.app fehlt oder ist zu lang")
+        check(isinstance(source.get("app"), str) and len(source["app"]) <= 64, "source.app missing or too long")
 
         agents = manifest.get("agents") or []
-        check(len(agents) > 0, "keine Agenten im Manifest")
+        check(len(agents) > 0, "no agents in the manifest")
         keys: set[str] = set()
         files_by_agent: dict[str, list[str]] = {}
 
         for agent in agents:
             key = agent.get("key", "")
             if not KEY.match(key) or len(key) > 64:
-                error(f"ungültiger Agent-Key: {key!r}")
+                error(f"invalid agent key: {key!r}")
                 continue
             if key in keys:
-                error(f"doppelter Agent-Key: {key}")
+                error(f"duplicate agent key: {key}")
             keys.add(key)
 
             name = agent.get("name", "")
-            check(isinstance(name, str) and 0 < len(name) <= 80, f"{key}: name fehlt oder ist zu lang")
-            check(isinstance(agent.get("title", ""), str) and len(agent.get("title", "")) <= 120, f"{key}: title zu lang")
+            check(isinstance(name, str) and 0 < len(name) <= 80, f"{key}: name missing or too long")
+            check(isinstance(agent.get("title", ""), str) and len(agent.get("title", "")) <= 120, f"{key}: title too long")
             description = agent.get("description", "")
-            check(isinstance(description, str) and description.strip() != "", f"{key}: description fehlt")
-            check(isinstance(description, str) and len(description) <= 2000, f"{key}: description über 2000 Zeichen")
+            check(isinstance(description, str) and description.strip() != "", f"{key}: description missing")
+            check(isinstance(description, str) and len(description) <= 2000, f"{key}: description over 2000 characters")
 
             prefix = f"agents/{key}/"
             for field in ("avatar", "files"):
                 value = agent.get(field)
                 if value is not None:
-                    check(isinstance(value, str) and value.startswith(prefix), f"{key}: {field} liegt nicht unter {prefix}")
+                    check(isinstance(value, str) and value.startswith(prefix), f"{key}: {field} is not under {prefix}")
 
             skills = agent.get("skills") or []
-            check(len(skills) <= 32, f"{key}: mehr als 32 Skills")
+            check(len(skills) <= 32, f"{key}: more than 32 skills")
             for skill in skills:
                 if not isinstance(skill, str) or not skill.startswith(prefix):
-                    error(f"{key}: Skill-Pfad außerhalb {prefix}: {skill!r}")
+                    error(f"{key}: skill path outside {prefix}: {skill!r}")
                     continue
                 entry = f"{skill}/SKILL.md"
                 if entry not in names:
-                    error(f"{key}: {entry} fehlt im Zip")
+                    error(f"{key}: {entry} missing from the zip")
                     continue
                 check_frontmatter(archive.read(entry).decode("utf-8"), entry)
                 folder_files = [n for n in names if n.startswith(f"{skill}/")]
-                check(len(folder_files) <= 200, f"{skill}: mehr als 200 Dateien")
+                check(len(folder_files) <= 200, f"{skill}: more than 200 files")
 
             files_by_agent[key] = names
 
             memories = agent.get("memories") or []
-            check(len(memories) <= 64, f"{key}: mehr als 64 Memories")
+            check(len(memories) <= 64, f"{key}: more than 64 memories")
             for memory in memories:
-                check(isinstance(memory, str) and len(memory) <= 500, f"{key}: Memory zu lang")
+                check(isinstance(memory, str) and len(memory) <= 500, f"{key}: memory too long")
 
             check_routines(agent.get("routines") or [], key)
 
         for channel in manifest.get("channels") or []:
             key = channel.get("key", "")
-            check(KEY.match(key) is not None, f"ungültiger Channel-Key: {key!r}")
+            check(KEY.match(key) is not None, f"invalid channel key: {key!r}")
             members = channel.get("members") or []
-            check(len(members) > 0, f"Channel {key}: keine Mitglieder")
+            check(len(members) > 0, f"channel {key}: no members")
             for member in members:
-                check(member in keys, f"Channel {key}: Mitglied {member!r} fehlt im Export")
+                check(member in keys, f"channel {key}: member {member!r} is missing from the export")
             lead = channel.get("lead")
-            check(lead is None or lead in members, f"Channel {key}: Lead ist kein Mitglied")
-            check_routines(channel.get("routines") or [], f"Channel {key}")
+            check(lead is None or lead in members, f"channel {key}: lead is not a member")
+            check_routines(channel.get("routines") or [], f"channel {key}")
 
     for line in warnings:
-        print(f"WARNUNG: {line}")
+        print(f"WARNING: {line}")
     if errors:
         for line in errors:
-            print(f"FEHLER: {line}")
-        print(f"\n{len(errors)} Fehler in {path.name}")
+            print(f"ERROR: {line}")
+        print(f"\n{len(errors)} errors in {path.name}")
         raise SystemExit(1)
-    print(f"OK: {path.name} entspricht dem Import-Format ({len(names)} Dateien).")
+    print(f"OK: {path.name} matches the import format ({len(names)} files).")
 
 
 if __name__ == "__main__":
